@@ -4,6 +4,7 @@ from urllib.request import urlopen
 import urllib
 from bs4 import BeautifulSoup
 from urllib.request import urlparse
+from multiprocessing import Pool
 
 
 class Implementation:
@@ -36,22 +37,26 @@ class Implementation:
             writer.writerow(data_for_read)
 
     @classmethod
+    def make_all(cls, url):
+        try:
+            doc = urlopen(url).read()
+        except urllib.request.HTTPError:
+            pass
+        else:
+            html = BeautifulSoup(doc, 'html.parser')
+            try:
+                get_url = html.find('th', text='Website').parent.find('a')['href']
+                website_url = get_url if urlparse(get_url).scheme else 'http:{}'.format(get_url)
+            except AttributeError:
+                website_url = 'Site Not Found!'
+            full_data = (url, website_url)
+            cls.record(full_data)
+
+    @classmethod
     def process(cls):
         cls.get_data()
         cls.record(cls.column_name)
-        for wikipedia_page_url in cls.pages:
-            try:
-                doc = urlopen(wikipedia_page_url).read()
-            except urllib.request.HTTPError:
-                break
-            else:
-                html = BeautifulSoup(doc, 'html.parser')
-                try:
-                    get_url = html.find('th', text='Website').parent.find('a')['href']
-                    website_url = get_url if urlparse(get_url).scheme else 'http:{}'.format(get_url)
-                except AttributeError:
-                    website_url = 'Site Not Found!'
-                full_data = (wikipedia_page_url, website_url)
-                cls.record(full_data)
+        with Pool(8) as p:
+            p.map(cls.make_all, cls.pages)
 
 Implementation.process()
