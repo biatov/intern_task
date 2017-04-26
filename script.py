@@ -41,7 +41,7 @@ class Implementation:
         try:
             doc = urlopen(url).read()
         except urllib.request.HTTPError:
-            pass
+            website_url = 'No info found'
         else:
             html = BeautifulSoup(doc, 'html.parser')
             try:
@@ -49,8 +49,8 @@ class Implementation:
                 website_url = get_url if urlparse(get_url).scheme else 'http:{}'.format(get_url)
             except AttributeError:
                 website_url = 'Site Not Found!'
-            full_data = (url, website_url)
-            cls.record(full_data)
+        full_data = (url, website_url)
+        cls.record(full_data)
 
     @classmethod
     def process(cls):
